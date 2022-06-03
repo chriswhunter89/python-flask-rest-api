@@ -23,6 +23,11 @@ video_put_args.add_argument("name", type=str, help="Name of the video is require
 video_put_args.add_argument("views", type=int, help="Views of the video is required", required=True)
 video_put_args.add_argument("likes", type=int, help="Likes of the video is required", required=True)
 
+video_update_args = reqparse.RequestParser()
+video_update_args.add_argument("name", type=str, help="Name of the video is required")
+video_update_args.add_argument("views", type=int, help="Views of the video is required")
+video_update_args.add_argument("likes", type=int, help="Likes of the video is required")
+
 resource_fields = {
     "id": fields.Integer,
     "name": fields.String,
@@ -50,8 +55,30 @@ class Video(Resource):
         db.session.commit() #persists to db
         return video, 201 #returns created video and status code
 
+    @marshal_with(resource_fields)
+    def patch(self, video_id):
+        args = video_update_args.parse_args()
+        result = VideoModel.query.filter_by(id=video_id).first()
+        if not result:
+            abort(404, message="Video does not exist. Cannot update.")
+
+        if args["name"]: #if args["name"] is not None
+            result.name = args["name"]
+        if args["views"]:
+            result.views = args["views"]
+        if args["likes"]:
+            result.likes = args["likes"]
+
+        db.session.commit()
+
+        return result
+
     def delete(self, video_id):
-        del videos[video_id]
+        video = VideoModel.query.filter_by(id=video_id).first()
+        if not video:
+            abort(404, message="Video does not exist. Cannot update.")
+        db.session.delete(video)
+        db.session.commit()
         return "", 204
 
 
